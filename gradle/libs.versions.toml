@@ -10,6 +10,7 @@ material = "1.11.0"
 cronetEmbedded = "119.6045.31"
 cronetOkhttp = "0.1.0"
 kwik = "0.8.10"
+jcommander = "1.83"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -25,6 +26,7 @@ cronet-embedded = { group = "org.chromium.net", name = "cronet-embedded", versio
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version = "4.12.0" }
 cronet-okhttp = { group = "com.google.net.cronet", name = "cronet-okhttp", version.ref = "cronetOkhttp" }
 kwik = { group = "tech.kwik", name = "kwik", version.ref = "kwik" }
+jcommander = { group = "org.jcommander", name = "jcommander", version.ref = "jcommander" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
