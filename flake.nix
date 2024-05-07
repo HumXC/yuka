@@ -1,10 +1,11 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.11";
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, flake-utils, nixpkgs }:
+  outputs = { self, flake-utils, nixpkgs, nixpkgs-unstable }:
     flake-utils.lib.eachSystem [ "x86_64-linux" ] (system:
       let
         pkgs = import nixpkgs {
@@ -14,21 +15,29 @@
             allowUnfree = true;
           };
         };
+        pkgs-unstable = import nixpkgs-unstable {
+          inherit system;
+          config = {
+            android_sdk.accept_license = true;
+            allowUnfree = true;
+          };
+        };
+        protocGenGrpcKotlinVersion = "1.4.1";
+        protocGenGrpcKotlinJar = pkgs.fetchurl {
+          url = "https://repo1.maven.org/maven2/io/grpc/protoc-gen-grpc-kotlin/${protocGenGrpcKotlinVersion}/protoc-gen-grpc-kotlin-${protocGenGrpcKotlinVersion}-jdk8.jar";
+          hash = "sha256-YqmVa0yarUoG7Lu11CXgeKA5HsV8Wia7+7sZ9nF7zWk=";
+        };
       in
       {
         devShells.default =
           let
-            ndkVersions = "25.1.8937393";
             androidComposition = pkgs.androidenv.composeAndroidPackages {
               toolsVersion = "26.1.1";
-              platformToolsVersion = "35.0.1";
+              platformToolsVersion = "34.0.5";
               buildToolsVersions = [ "34.0.0" ];
-              includeEmulator = false;
-              emulatorVersion = "35.1.4";
-              platformVersions = [ "34" ];
+              platformVersions = [ "21" "34" ];
               abiVersions = [ "arm64-v8a" ];
-              # includeNDK = true;
-              # ndkVersions = [ ndkVersions ];
+              includeSources = true;
             };
           in
           (pkgs.buildFHSUserEnv {
@@ -36,22 +45,22 @@
             targetPkgs = pkgs: (with pkgs;
               [
                 glibc
-                android-studio
-                (pkgs.writeScriptBin "studio" ''${pkgs.glib}/bin/gio launch ${pkgs.android-studio}/share/applications/android-studio.desktop'')
-              ]) ++ [ androidComposition.androidsdk ];
+                (pkgs.writeScriptBin "studio" ''
+                  ${pkgs.glib}/bin/gio launch ${pkgs.android-studio}/share/applications/android-studio.desktop .
+                '')
+                (pkgs.writeScriptBin "protoc-gen-kotlin" ''
+                  #!/usr/bin/env sh
+                  ${pkgs.jdk8}/bin/java -jar ${protocGenGrpcKotlinJar} "$@"
+                '')
+              ]) ++ (with pkgs-unstable; [
+              android-studio
+              protobuf_26
+              zulu17
+            ]) ++ [ androidComposition.androidsdk ];
             profile =
               ''
                 export ANDROID_HOME=${androidComposition.androidsdk}/libexec/android-sdk
                 echo ANDROID_HOME: $ANDROID_HOME
-
-                export SYSROOT=$ANDROID_HOME/ndk/${ndkVersions}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/
-                echo SYSROOT: $SYSROOT
-
-                export PATH=$PATH:$ANDROID_HOME/ndk/${ndkVersions}
-                export PATH=$PATH:$ANDROID_HOME/tools:$ANDROID_HOME/tools/bin:$ANDROID_HOME/platform-tools
-                export CFLAGS="I$SYSROOT/usr/include"
-                export LDFLAGS="-L$SYSROOT/usr/lib -lz"
-
               '';
           }).env;
       }
