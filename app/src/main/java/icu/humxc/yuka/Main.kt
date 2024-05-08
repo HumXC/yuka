@@ -16,7 +16,7 @@ class Main {
             GlobalScope.launch(context = Dispatchers.IO) {
                 try {
                     mainFunc(args)
-                } catch (e: Exception) {
+                } catch (e: Throwable) {
                     e.printStackTrace()
                 }
                 Looper.getMainLooper().quit()
